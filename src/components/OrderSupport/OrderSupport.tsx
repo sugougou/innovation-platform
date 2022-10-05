@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './OrderSupport.module.css'
-import { tcb_auth, tcb_db } from '../../configs/global'
 import { Order, OrderStatus } from '../../configs/types'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
@@ -13,9 +12,13 @@ import ChatMsgArea from '../ChatMsgArea/ChatMsgArea'
 import Button from '@mui/material/Button'
 import AddIcon from '@mui/icons-material/Add'
 import FormDialog from '../FormDialog/FormDialog'
+import axios from 'axios'
+import { order_, order_sendmsg } from '../../configs/api'
+import { useAppSelector } from '../../hooks/redux'
+import { selectUser } from '../../stores/user/userSlice'
 
 const OrderSupport = () => {
-  const user = tcb_auth.currentUser
+  const userState = useAppSelector(selectUser);
   const [open, setOpen] = useState(false)
   const textfield = useRef<HTMLInputElement>(null)
   const msgarea = useRef<HTMLInputElement>(null)
@@ -31,10 +34,12 @@ const OrderSupport = () => {
   }, [])
 
   function getMyOrder() {
-    tcb_db.collection('inno-orders').where({
-      from_uid: user?.uid
-    }).orderBy('open_date', 'desc').get().then((res) => {
-      setOrders(res.data)
+    axios.get(order_ + `?opened=true`, {
+      headers: {
+        'Authorization': userState.data?.token ? userState.data.token : ""
+      }
+    }).then((res) => {
+      setOrders(res.data.data)
     })
   }
 
@@ -50,22 +55,22 @@ const OrderSupport = () => {
   }
 
   function sendMessage() {
-    tcb_db.collection('inno-orders').doc(orders[current]._id).update({
-      last_date: new Date().getTime(),
-      message: tcb_db.command.push({ data: textfield.current?.value, direction: 0 })
-    }).then(() => {
-      const message = orders[current].message
-      const temp = orders
-      message.push({ data: textfield.current!.value, direction: 0 })
-      temp.splice(current, 1, { ...orders[current], last_date: new Date().getTime(), message })
-      setOrders([...temp])
-      textfield.current!.value = ''
-    })
+    axios.post(order_sendmsg, {
+      id: orders[current]._id,
+      message: textfield.current?.value
+    }, { headers: { 'Authorization': userState.data?.token ? userState.data.token : "" } }).then(() => {
+      const message = orders[current].message;
+      const temp = orders;
+      message.push({ data: textfield.current!.value, direction: 0 });
+      temp.splice(current, 1, { ...orders[current], last_time: new Date(), message });
+      setOrders([...temp]);
+      textfield.current!.value = '';
+    });
   }
 
   useEffect(() => {
     getMyOrder()
-  }, [])
+  }, [userState.data?.token])
 
   useEffect(() => {
     msgarea.current?.scroll({ top: msgarea.current.scrollHeight })
@@ -89,7 +94,8 @@ const OrderSupport = () => {
               const date = new Date(order.open_date)
               return (
                 <ListItem key={i} sx={{
-                  boxSizing: 'border-box', padding: '0',
+                  padding: '0',
+                  boxSizing: 'border-box',
                   '& .MuiListItemButton-root': {
                     padding: '0.75rem 1.5rem'
                   }
@@ -97,7 +103,7 @@ const OrderSupport = () => {
                   <ListItemButton onClick={() => { switchOrder(i) }} selected={i === current}>
                     <ListItemText primary={
                       <>
-                        <span className='primary-title'>#{order.id} {order.title}</span>
+                        <span className='primary-title'>#{order.count} {order.title}</span>
                         <Chip label={order.status} size='small' color={computedChipColor(order.status)} />
                       </>
                     } secondary={
@@ -118,11 +124,11 @@ const OrderSupport = () => {
           orders[current] &&
           <>
             <div className={styles.head}>
-              <h1>#{orders[current].id} {orders[current].title}</h1>
+              <h1>#{orders[current].count} {orders[current].title}</h1>
               <p>ID: {orders[current]._id}</p>
               <span>分派对象：{orders[current].to_uid.slice(-4)}</span>
               <span>创建时间：{new Date(orders[current].open_date).toLocaleString()}</span>
-              <span>最近消息：{new Date(orders[current].last_date).toLocaleString()}</span>
+              <span>最近消息：{new Date(orders[current].last_time).toLocaleString()}</span>
             </div>
             <div ref={msgarea} className={styles.msgArea}>
               <ChatMsgArea direction={0} chat={orders[current].message} />

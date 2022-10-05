@@ -108,10 +108,11 @@ export const apps: Applications = {
       category: 'learn'
     },
     {
-      title: '设计资源导航',
-      note: '导航专注服务于设计师的导航网站，致力于分享优秀免费的设计网站网址，一流设计导航大全还包括免费无版权限制可商用的高品质素材，设计教程、尺寸规范、配色方案、设计素材和灵感等',
-      picture: '	http://map.s-jl.com/wp-content/uploads/2020/08/h-logo.png',
-      url: 'http://16map.com/',
+      title: '一流导航',
+      note: '设计师导航网站',
+      description: '导航专注服务于设计师的导航网站，致力于分享优秀免费的设计网站网址，一流设计导航大全还包括免费无版权限制可商用的高品质素材，设计教程、尺寸规范、配色方案、设计素材和灵感等',
+      picture: '16map.webp',
+      url: 'http://16map.com',
       category: 'tools'
     }
   ],
